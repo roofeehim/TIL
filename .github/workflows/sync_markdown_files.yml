@@ -21,6 +21,7 @@ jobs:
         env:
           TARGET_REPOSITORY: 'roofeehim/roofeehim-blog'
           TARGET_PATH: 'src/pages/memos'
+          ACCESS_TOKEN: ${ secrets.SYNC_FILES_TOKEN }
         with:
           script: |
             const fs = require('fs');
