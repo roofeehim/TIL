@@ -13,33 +13,15 @@ jobs:
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v3
-        with:
-          repository: 'roofeehim/TIL'
-          fetch-depth: 0  # 履歴を全て取得
-
-      - name: Display git diff
-        run: |
-          echo "Changed files from the last commit:"
-          git diff --name-only HEAD^ HEAD
-
-          echo "Changed Markdown files:"
-          MODIFIED_MD_FILES=$(git diff --name-only HEAD^ HEAD | grep '\.md$' || echo "")
-          echo "MODIFIED_MD_FILES=$MODIFIED_MD_FILES" >> $GITHUB_ENV
-          echo "Modified Markdown files: $MODIFIED_MD_FILES"
 
       - name: Process modified Markdown files
         run: |
-          if [ -z "${{ env.MODIFIED_MD_FILES }}" ]; then
-            echo "No Markdown files were modified."
-          else
-            # 安全に配列に変換
-            IFS=' ' read -r -a md_files_array <<< "${{ env.MODIFIED_MD_FILES }}"
-            for md_file in "${md_files_array[@]}"
-            do
-              echo "Processing $md_file..."
-              # ここにMarkdownファイルを処理するための追加のスクリプトを実行
-            done
-          fi
+          echo "Changed Markdown files:"
+          for file in ${{ toJson(github.event.head_commit.modified) }}
+          do
+            echo $file
+            # ここでMarkdownファイルを処理するスクリプトを実行
+          done
 
       - name: Copy and format files to another repository
         uses: actions/github-script@v6
@@ -51,10 +33,12 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+            const { context, getOctokit } = require('@actions/github');
+            const octokit = getOctokit(process.env.ACCESS_TOKEN);
 
-            const modifiedFiles = process.env.MODIFIED_FILES.split(' ');
-            for (const file of modifiedFiles) {
-              if (file) {
+            const modifiedFiles = ${{ toJson(github.event.head_commit.modified) }};
+            modifiedFiles.forEach(async (file) => {
+              if (file.endsWith('.md')) {
                 const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
                 const lines = fileContent.split('\n');
@@ -74,8 +58,7 @@ jobs:
                 const newContent = frontMatter + '\n' + fileContent;
 
                 const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
-                const octokit = getOctokit(process.env.ACCESS_TOKEN);
-
+                
                 await octokit.rest.repos.createOrUpdateFileContents({
                   owner: context.repo.owner,
                   repo: process.env.TARGET_REPOSITORY,
@@ -93,4 +76,4 @@ jobs:
                   }
                 });
               }
-            }
+            });
