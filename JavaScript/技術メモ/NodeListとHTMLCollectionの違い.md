@@ -1,5 +1,3 @@
-# NodeListとHTMLCollectionの違いについて
-
 Web開発において、NodeListとHTMLCollectionという2つのオブジェクトがあります。これらは、HTMLドキュメント内の要素にアクセスするために使用されます。しかし、これら2つのオブジェクトには、静的と動的な違いがあります。
 
 ## NodeList
