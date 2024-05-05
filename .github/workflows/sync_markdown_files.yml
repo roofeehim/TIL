@@ -1,0 +1,79 @@
+name: Sync Markdown Files
+
+on:
+  push:
+    paths:
+      - '**/*.md'
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'roofeehim/TIL'
+
+      - name: Copy and format files to another repository
+        uses: actions/github-script@v6
+        env:
+          TARGET_REPOSITORY: 'roofeehim/roofeehim-blog'
+          TARGET_PATH: 'src/pages/memos'
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const github = require('@actions/github');
+            const { context } = github;
+
+            // Helper function to format date
+            function formatDate(date) {
+              const options = { month: 'long', day: 'numeric' };
+              return date.toLocaleDateString('en-US', options);
+            }
+
+            // Loop through each markdown file that was pushed
+            for (const file of context.payload.commits[0].added.concat(context.payload.commits[0].modified)) {
+              if (file.endsWith('.md')) {
+                const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const lines = fileContent.split('\n');
+                const firstLine = lines.find(line => line.trim() !== '');
+                const title = path.basename(file, '.md');
+                const pubDate = formatDate(new Date());
+                const tags = path.dirname(file).split('/').filter(Boolean);
+
+                // Prepare the frontmatter
+                const frontMatter = `---
+                  layout: ../../layouts/MarkdownPostLayout.astro
+                title: '${title}'
+                description: '${firstLine}'
+                pubDate: '${pubDate}'
+                tags: ['${tags.join("', '")}']---`;
+                // Prepare the new content with frontmatter
+                const newContent = frontMatter + '\n' + fileContent;
+
+                // Configure the target file path
+                const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
+
+                // Push file to the target repository
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner: context.repo.owner,
+                  repo: process.env.TARGET_REPOSITORY,
+                  path: targetFilePath,
+                  message: `Sync Markdown file: ${title}`,
+                  content: Buffer.from(newContent).toString('base64'),
+                  branch: 'main',
+                  committer: {
+                    name: process.env.GITHUB_ACTOR,
+                    email: 'email@example.com'
+                  },
+                  author: {
+                    name: process.env.GITHUB_ACTOR,
+                    email: 'email@example.com'
+                  }
+                });
+              }
+            }
