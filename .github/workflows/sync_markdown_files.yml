@@ -19,6 +19,15 @@ jobs:
 
       - name: Find Modified Markdown Files
         run: |
+
+          # 直前のコミットと比較して変更されたファイルの一覧を取得
+          echo "Changed files from the last commit:"
+          git diff --name-only HEAD^ HEAD
+
+          # Markdownファイルのみを抽出して表示
+          echo "Changed Markdown files:"
+          git diff --name-only HEAD^ HEAD | grep '\.md$'
+          
           MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD | grep '\.md$')
           echo "Modified Markdown files: $MODIFIED_FILES"
           echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
