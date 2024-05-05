@@ -23,6 +23,9 @@ jobs:
             # ここでMarkdownファイルを処理するスクリプトを実行
           done
 
+      - name: Install dependencies
+        run: npm install @actions/github
+
       - name: Copy and format files to another repository
         uses: actions/github-script@v6
         env:
@@ -33,6 +36,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+            const github = require('@actions/github');
             const octokit = github.getOctokit(process.env.ACCESS_TOKEN);
 
             const modifiedFiles = ${{ toJson(github.event.head_commit.modified) }};
