@@ -19,7 +19,6 @@ jobs:
 
       - name: Find Modified Markdown Files
         run: |
-          git fetch --prune --unshallow
           MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD | grep '\.md$')
           echo "Modified Markdown files: $MODIFIED_FILES"
           echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
