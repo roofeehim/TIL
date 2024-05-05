@@ -21,7 +21,7 @@ jobs:
         env:
           TARGET_REPOSITORY: 'roofeehim/roofeehim-blog'
           TARGET_PATH: 'src/pages/memos'
-          ACCESS_TOKEN: ${ secrets.SYNC_FILES_TOKEN }
+          ACCESS_TOKEN: ${{ secrets.SYNC_FILES_TOKEN }}
         with:
           script: |
             const fs = require('fs');
@@ -48,11 +48,13 @@ jobs:
 
                 // Prepare the frontmatter
                 const frontMatter = `---
-                  layout: ../../layouts/MarkdownPostLayout.astro
+                layout: ../../layouts/MarkdownPostLayout.astro
                 title: '${title}'
                 description: '${firstLine}'
                 pubDate: '${pubDate}'
-                tags: ['${tags.join("', '")}']---`;
+                tags: ['${tags.join("', '")}']
+                ---
+                `;
                 // Prepare the new content with frontmatter
                 const newContent = frontMatter + '\n' + fileContent;
 
