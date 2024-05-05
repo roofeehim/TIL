@@ -26,58 +26,61 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-
-            // Helper function to format date
+            
             function formatDate(date) {
               const options = { month: 'long', day: 'numeric' };
               return date.toLocaleDateString('en-US', options);
             }
-
-            // Loop through each markdown file that was pushed
-            for (const file of context.payload.commits[0].added.concat(context.payload.commits[0].modified)) {
-              if (file.endsWith('.md')) {
-                const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
-                const fileContent = fs.readFileSync(filePath, 'utf8');
-                const lines = fileContent.split('\n');
-                const firstLine = lines.find(line => line.trim() !== '');
-                const title = path.basename(file, '.md');
-                const pubDate = formatDate(new Date());
-                const tags = path.dirname(file).split('/').filter(Boolean);
-
-                // Prepare the frontmatter
-                const frontMatter = `---
-                  layout: ../../layouts/MarkdownPostLayout.astro
-                  title: '${title}'
-                  description: '${firstLine}'
-                  pubDate: '${pubDate}'
-                  tags: ['${tags.join("', '")}']
-                  ---
-                  `;
-                // Prepare the new content with frontmatter
-                const newContent = frontMatter + '\n' + fileContent;
-
-                // Configure the target file path
-                const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
-
-                // Initialize Octokit with the provided token
-                const octokit = getOctokit(process.env.ACCESS_TOKEN);
-
-                // Push file to the target repository
-                await octokit.rest.repos.createOrUpdateFileContents({
-                  owner: context.repo.owner,
-                  repo: process.env.TARGET_REPOSITORY,
-                  path: targetFilePath,
-                  message: `Sync Markdown file: ${title}`,
-                  content: Buffer.from(newContent).toString('base64'),
-                  branch: 'main',
-                  committer: {
-                    name: process.env.GITHUB_ACTOR,
-                    email: 'email@example.com'
-                  },
-                  author: {
-                    name: process.env.GITHUB_ACTOR,
-                    email: 'email@example.com'
-                  }
-                });
+            
+            // デバッグ情報を出力
+            console.log(JSON.stringify(context.payload.commits));
+            
+            for (const commit of context.payload.commits) {
+              // added と modified が undefined の場合は空の配列を使う
+              const addedFiles = commit.added || [];
+              const modifiedFiles = commit.modified || [];
+              const allFiles = addedFiles.concat(modifiedFiles);
+            
+              for (const file of allFiles) {
+                if (file.endsWith('.md')) {
+                  const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
+                  const fileContent = fs.readFileSync(filePath, 'utf8');
+                  const lines = fileContent.split('\n');
+                  const firstLine = lines.find(line => line.trim() !== '');
+                  const title = path.basename(file, '.md');
+                  const pubDate = formatDate(new Date());
+                  const tags = path.dirname(file).split('/').filter(Boolean);
+            
+                  const frontMatter = `---
+                    layout: ../../layouts/MarkdownPostLayout.astro
+                    title: '${title}'
+                    description: '${firstLine}'
+                    pubDate: '${pubDate}'
+                    tags: ['${tags.join("', '")}']
+                    ---
+                    `;
+                  const newContent = frontMatter + '\n' + fileContent;
+            
+                  const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
+                  const octokit = github.getOctokit(process.env.ACCESS_TOKEN);
+            
+                  await octokit.rest.repos.createOrUpdateFileContents({
+                    owner: context.repo.owner,
+                    repo: process.env.TARGET_REPOSITORY,
+                    path: targetFilePath,
+                    message: `Sync Markdown file: ${title}`,
+                    content: Buffer.from(newContent).toString('base64'),
+                    branch: 'main',
+                    committer: {
+                      name: process.env.GITHUB_ACTOR,
+                      email: 'email@example.com'
+                    },
+                    author: {
+                      name: process.env.GITHUB_ACTOR,
+                      email: 'email@example.com'
+                    }
+                  });
+                }
               }
             }
+            
