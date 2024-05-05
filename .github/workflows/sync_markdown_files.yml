@@ -19,17 +19,26 @@ jobs:
 
       - name: Display git diff
         run: |
-          # 直前のコミットと比較して変更されたファイルの一覧を取得
           echo "Changed files from the last commit:"
           git diff --name-only HEAD^ HEAD
 
-          # Markdownファイルのみを抽出して表示
           echo "Changed Markdown files:"
-          MODIFIED_MD_FILES=$(git diff --name-only HEAD^ HEAD | grep '\.md$' || true)
-          if [ -z "$MODIFIED_MD_FILES" ]; then
+          MODIFIED_MD_FILES=$(git diff --name-only HEAD^ HEAD | grep '\.md$' || echo "")
+          echo "MODIFIED_MD_FILES=$MODIFIED_MD_FILES" >> $GITHUB_ENV
+          echo "Modified Markdown files: $MODIFIED_MD_FILES"
+
+      - name: Process modified Markdown files
+        run: |
+          if [ -z "${{ env.MODIFIED_MD_FILES }}" ]; then
             echo "No Markdown files were modified."
           else
-            echo "$MODIFIED_MD_FILES"
+            # 安全に配列に変換
+            IFS=' ' read -r -a md_files_array <<< "${{ env.MODIFIED_MD_FILES }}"
+            for md_file in "${md_files_array[@]}"
+            do
+              echo "Processing $md_file..."
+              # ここにMarkdownファイルを処理するための追加のスクリプトを実行
+            done
           fi
 
       - name: Copy and format files to another repository
