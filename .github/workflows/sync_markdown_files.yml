@@ -39,8 +39,8 @@ jobs:
             const { getOctokit } = require('@actions/github');
             const octokit = getOctokit(process.env.ACCESS_TOKEN);
 
-            const modifiedFiles = ${{ toJson(github.event.head_commit.modified) }};
-            console.log(toJson(github.event.head_commit.modified))
+            const modifiedFiles = github.event.head_commit.modified;
+            console.log(github.event.head_commit.modified)
             modifiedFiles.forEach(async (file) => {
               if (file.endsWith('.md')) {
                 const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
