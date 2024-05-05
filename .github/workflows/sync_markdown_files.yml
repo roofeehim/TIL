@@ -26,8 +26,8 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const github = require('@actions/github');
-            const { context } = github;
+            const githubActions = require('@actions/github');
+            const { context } = githubAction;
 
             // Helper function to format date
             function formatDate(date) {
