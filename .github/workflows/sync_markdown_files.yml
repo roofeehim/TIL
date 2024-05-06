@@ -66,11 +66,11 @@ jobs:
                   branch: 'main',
                   committer: {
                     name: github.context.actor,
-                    email: 'email@example.com'  # これは適切な値に置き換える
+                    email: 'email@example.com'
                   },
                   author: {
                     name: github.context.actor,
-                    email: 'email@example.com'  # これも適切な値に
+                    email: 'email@example.com'
                   }
                 });
               }
