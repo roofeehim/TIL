@@ -14,6 +14,9 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v3
 
+      - name: Log GitHub Context
+        run: echo "${{ toJson(github) }}"
+
       - name: Process modified Markdown files
         run: |
           echo "Changed Markdown files:"
