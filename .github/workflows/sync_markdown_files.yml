@@ -14,28 +14,15 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v3
 
-      - name: Process modified Markdown files
-        run: |
-          echo "Changed Markdown files:"
-          modified_files=(${{ join(github.event.head_commit.modified, ' ') }})
-          for file in "${modified_files[@]}"
-          do
-            echo $file
-            if [[ "$file" == *.md ]]; then
-              echo "Processing Markdown file: $file"
-              # ここにMarkdownファイルを処理するための追加のスクリプトを実行
-            fi
-          done
-
       - name: Copy and format files to another repository
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const octokit = github.getOctokit(process.env.ACCESS_TOKEN);
+            const octokit = github.getOctokit(process.env.SYNC_FILES_TOKEN);
 
-            const modifiedFiles = ${{ join(github.event.head_commit.modified, ' ') }}
+            const modifiedFiles = github.context.payload.commits.flatMap(commit => commit.modified);
             modifiedFiles.forEach(async (file) => {
               if (file.endsWith('.md')) {
                 const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
@@ -47,30 +34,32 @@ jobs:
                 const tags = path.dirname(file).split('/').filter(Boolean);
 
                 const frontMatter = `
+                  ---
                   layout: ../../layouts/MarkdownPostLayout.astro
                   title: '${title}'
                   description: '${firstLine}'
                   pubDate: '${pubDate}'
                   tags: ['${tags.join("', '")}']
-                `;
+                  ---
+                  `;
                 const newContent = frontMatter + '\n' + fileContent;
 
-                const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
+                const targetFilePath = `src/pages/memos/${title}.md`;
                 
                 await octokit.rest.repos.createOrUpdateFileContents({
-                  owner: github.context.repo.owner,
-                  repo: process.env.TARGET_REPOSITORY,
+                  owner: 'roofeehim',
+                  repo: 'roofeehim-blog',
                   path: targetFilePath,
                   message: `Sync Markdown file: ${title}`,
                   content: Buffer.from(newContent).toString('base64'),
                   branch: 'main',
                   committer: {
                     name: github.context.actor,
-                    email: 'email@example.com'
+                    email: 'email@example.com'  // このメールアドレスを適宜変更してください
                   },
                   author: {
                     name: github.context.actor,
-                    email: 'email@example.com'
+                    email: 'email@example.com'  // このメールアドレスを適宜変更してください
                   }
                 });
               }
