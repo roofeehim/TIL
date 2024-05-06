@@ -14,36 +14,30 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v3
 
-      - name: Log GitHub Context
-        run: echo "${{ toJson(github) }}"
-
       - name: Process modified Markdown files
         run: |
           echo "Changed Markdown files:"
-          for file in ${{ toJson(github.event.head_commit.modified) }}
+          modified_files=(${{ join(github.event.head_commit.modified, ' ') }})
+          for file in "${modified_files[@]}"
           do
             echo $file
-            # ここでMarkdownファイルを処理するスクリプトを実行
+            if [[ "$file" == *.md ]]; then
+              echo "Processing Markdown file: $file"
+              # ここにMarkdownファイルを処理するための追加のスクリプトを実行
+            fi
           done
-
-      - name: Install dependencies
-        run: npm install @actions/github
 
       - name: Copy and format files to another repository
         uses: actions/github-script@v6
-        env:
-          TARGET_REPOSITORY: 'roofeehim/roofeehim-blog'
-          TARGET_PATH: 'src/pages/memos'
-          ACCESS_TOKEN: ${{ secrets.SYNC_FILES_TOKEN }}
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { getOctokit } = require('@actions/github');
+            const { context, getOctokit } = require('@actions/github');
             const octokit = getOctokit(process.env.ACCESS_TOKEN);
 
-            const modifiedFiles = github.event.head_commit.modified;
-            modifiedFiles.forEach(async (file) => {
+            const modifiedFiles = ${{ join(github.event.head_commit.modified, ' ') }};
+            modifiedFiles.split(' ').forEach(async (file) => {
               if (file.endsWith('.md')) {
                 const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
