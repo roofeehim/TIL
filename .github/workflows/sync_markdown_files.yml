@@ -33,11 +33,10 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { getOctokit } = require('@actions/github');
-            const octokit = getOctokit(process.env.ACCESS_TOKEN);
+            const octokit = require('@actions/github').getOctokit(process.env.ACCESS_TOKEN);
 
-            const modifiedFiles = ${{ join(github.event.head_commit.modified, ' ') }};
-            modifiedFiles.split(' ').forEach(async (file) => {
+            const modifiedFiles = ${{ join(github.event.head_commit.modified, ' ') }}
+            modifiedFiles.forEach(async (file) => {
               if (file.endsWith('.md')) {
                 const filePath = path.join(process.env.GITHUB_WORKSPACE, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -47,32 +46,31 @@ jobs:
                 const pubDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
                 const tags = path.dirname(file).split('/').filter(Boolean);
 
-                const frontMatter = `---
+                const frontMatter = `
                   layout: ../../layouts/MarkdownPostLayout.astro
                   title: '${title}'
                   description: '${firstLine}'
                   pubDate: '${pubDate}'
                   tags: ['${tags.join("', '")}']
-                  ---
-                  `;
+                `;
                 const newContent = frontMatter + '\n' + fileContent;
 
                 const targetFilePath = `${process.env.TARGET_PATH}/${title}.md`;
                 
                 await octokit.rest.repos.createOrUpdateFileContents({
-                  owner: context.repo.owner,
+                  owner: github.context.repo.owner,
                   repo: process.env.TARGET_REPOSITORY,
                   path: targetFilePath,
                   message: `Sync Markdown file: ${title}`,
                   content: Buffer.from(newContent).toString('base64'),
                   branch: 'main',
                   committer: {
-                    name: process.env.GITHUB_ACTOR,
-                    email: 'email@example.com'
+                    name: github.context.actor,
+                    email: 'email@example.com'  # これは適切な値に置き換える
                   },
                   author: {
-                    name: process.env.GITHUB_ACTOR,
-                    email: 'email@example.com'
+                    name: github.context.actor,
+                    email: 'email@example.com'  # これも適切な値に
                   }
                 });
               }
