@@ -33,7 +33,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { context, getOctokit } = require('@actions/github');
+            const { getOctokit } = require('@actions/github');
             const octokit = getOctokit(process.env.ACCESS_TOKEN);
 
             const modifiedFiles = ${{ join(github.event.head_commit.modified, ' ') }};
