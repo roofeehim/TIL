@@ -22,9 +22,9 @@ jobs:
       - name: Get list of changed markdown files
         id: changed_files
         run: |
-          echo "Changed files:"
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$')
-          echo "$CHANGED_FILES"
+          echo "Fetching changes between ${{ github.event.before }} and ${{ github.event.after }}"
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$' || echo "")
+          echo "Changed files: $CHANGED_FILES"
           if [[ -z "$CHANGED_FILES" ]]; then
             echo "No markdown files changed."
             exit 0  # Exit successfully if no changes
@@ -42,7 +42,7 @@ jobs:
       - name: Copy changed files to target repository
         run: |
           for file in ${{ steps.changed_files.outputs.markdown_files }}; do
-            echo "Processing $file"
+            echo "Processing file: $file"
             cp "$file" "target-repo/src/pages/memos/$file"
             if [ $? -ne 0 ]; then
               echo "Failed to copy $file"
@@ -56,5 +56,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Sync Markdown files from source"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          else
+            git commit -m "Sync Markdown files from source"
+            git push
