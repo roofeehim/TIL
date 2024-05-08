@@ -14,7 +14,7 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Ensure we have the full git history
 
       - name: Install Dependencies
         run: brew install jq
@@ -25,7 +25,12 @@ jobs:
           echo "Changed files:"
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$')
           echo "$CHANGED_FILES"
-          echo "::set-output name=markdown_files::$CHANGED_FILES"
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No markdown files changed."
+            exit 0  # Exit successfully if no changes
+          else
+            echo "::set-output name=markdown_files::$CHANGED_FILES"
+          fi
 
       - name: Checkout target repository
         uses: actions/checkout@v2
@@ -48,9 +53,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Sync Markdown files from source"
-            git push
-          fi
+          git commit -m "Sync Markdown files from source"
+          git push
