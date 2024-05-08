@@ -1,0 +1,64 @@
+name: Sync Markdown Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.md'
+
+jobs:
+  sync:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: brew install jq
+
+      - name: Find Modified Markdown Files
+        id: files
+        run: |
+          echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$' | jq -R -s -c 'split("\n")[:-1]')"
+
+      - name: Checkout target repository
+        uses: actions/checkout@v2
+        with:
+          repository: 'roofeehim/roofeehim-blog'
+          token: ${{ secrets.SYNC_FILES_TOKEN }}
+          path: 'target-repo'
+
+      - name: Copy and process files
+        run: |
+          FILES=${{ steps.files.outputs.files }}
+          jq -c '.[]' <<< "$FILES" | while read -r file; do
+            if [[ -f "$file" ]]; then
+              # Create target directory if it doesn't exist
+              mkdir -p "target-repo/src/pages/memos/$(dirname "$file")"
+              # Process the file to add front matter
+              TITLE=$(basename "$file" .md)
+              DESCRIPTION=$(head -n 1 "$file")
+              DATE=$(date +'%B %d')
+              TAGS=$(echo "$file" | awk -F/ '{OFS=","; $1=""; print $0}' | sed 's/,//')
+              {
+                echo "---"
+                echo "layout: post"
+                echo "title: $TITLE"
+                echo "description: $DESCRIPTION"
+                echo "date: $DATE"
+                echo "tags: $TAGS"
+                echo "---"
+                cat "$file"
+              } > "target-repo/src/pages/memos/$file"
+            fi
+          done
+
+      - name: Commit and push changes
+        run: |
+          cd target-repo
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Sync Markdown files from source"
+          git push
