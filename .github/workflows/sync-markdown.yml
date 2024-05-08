@@ -29,7 +29,8 @@ jobs:
             echo "No markdown files changed."
             exit 0  # Exit successfully if no changes
           else
-            echo "::set-output name=markdown_files::$CHANGED_FILES"
+            FILE_NAMES=$(echo "$CHANGED_FILES" | xargs -n 1 basename)
+            echo "::set-output name=markdown_files::$FILE_NAMES"
           fi
 
       - name: Checkout target repository
