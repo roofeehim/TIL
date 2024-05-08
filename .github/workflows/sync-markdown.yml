@@ -62,3 +62,4 @@ jobs:
           else
             git commit -m "Sync Markdown files from source"
             git push
+          fi
