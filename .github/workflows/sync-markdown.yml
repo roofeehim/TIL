@@ -40,15 +40,15 @@ jobs:
           path: 'target-repo'
 
       - name: Copy changed files to target repository
-      run: |
-        for file in ${{ steps.changed_files.outputs.markdown_files }}; do
-          echo "Processing $file"
-          cp "$file" "target-repo/src/pages/memos/$file"
-          if [ $? -ne 0 ]; then
-            echo "Failed to copy $file"
-            exit 1
-          fi
-        done
+        run: |
+          for file in ${{ steps.changed_files.outputs.markdown_files }}; do
+            echo "Processing $file"
+            cp "$file" "target-repo/src/pages/memos/$file"
+            if [ $? -ne 0 ]; then
+              echo "Failed to copy $file"
+              exit 1
+            fi
+          done
 
       - name: Commit and push changes
         run: |
