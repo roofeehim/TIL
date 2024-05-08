@@ -13,14 +13,19 @@ jobs:
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Install Dependencies
         run: brew install jq
 
-      - name: Find Modified Markdown Files
-        id: files
+      - name: Get list of changed markdown files
+        id: changed_files
         run: |
-          echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$' | jq -R -s -c 'split("\n")[:-1]')"
+          echo "Changed files:"
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.md$')
+          echo "$CHANGED_FILES"
+          echo "::set-output name=markdown_files::$CHANGED_FILES"
 
       - name: Checkout target repository
         uses: actions/checkout@v2
@@ -29,29 +34,12 @@ jobs:
           token: ${{ secrets.SYNC_FILES_TOKEN }}
           path: 'target-repo'
 
-      - name: Copy and process files
+      - name: Copy changed files to target repository
         run: |
-          FILES=${{ steps.files.outputs.files }}
-          jq -c '.[]' <<< "$FILES" | while read -r file; do
-            if [[ -f "$file" ]]; then
-              # Create target directory if it doesn't exist
-              mkdir -p "target-repo/src/pages/memos/$(dirname "$file")"
-              # Process the file to add front matter
-              TITLE=$(basename "$file" .md)
-              DESCRIPTION=$(head -n 1 "$file")
-              DATE=$(date +'%B %d')
-              TAGS=$(echo "$file" | awk -F/ '{OFS=","; $1=""; print $0}' | sed 's/,//')
-              {
-                echo "---"
-                echo "layout: post"
-                echo "title: $TITLE"
-                echo "description: $DESCRIPTION"
-                echo "date: $DATE"
-                echo "tags: $TAGS"
-                echo "---"
-                cat "$file"
-              } > "target-repo/src/pages/memos/$file"
-            fi
+          for file in ${{ steps.changed_files.outputs.markdown_files }}; do
+            echo "Processing $file"
+            mkdir -p "target-repo/src/pages/memos/$(dirname "$file")"
+            cp "$file" "target-repo/src/pages/memos/$file"
           done
 
       - name: Commit and push changes
@@ -60,5 +48,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Sync Markdown files from source"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync Markdown files from source"
+            git push
+          fi
