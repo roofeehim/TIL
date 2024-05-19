@@ -983,3 +983,448 @@ function addNumber(a:number,b:number):number {
   // >> Class 'Circle' incorrectly implements interface 'Shape'.
   //  >>  Property 'getArea' is missing in type 'Circle' but required in type 'Shape'.
 }
+
+// 異なるプリミティブ型同士の演算
+// NumberAndStringのようなnumber型とstring型を同時に持つ要素の存在しないため、この型は空集合となる
+// TypeScriptでは空集合はnever型として扱われ、定義上すべての集合の部分集合となる
+{
+  // ユニオン型
+  type NumberOrString = number | string;
+
+  // インターセクション型
+  type NumberAndString = number & string; // never 型
+}
+
+// オブジェクト型と集合
+// これらの例を通じて、オブジェクト型は、「特定のプロパティを持つ、という条件を満たす、すべてのオブジェクトの集合」ということがわかる
+{
+  // string型のnameプロパティを持つオブジェクト型を定義
+  type Name = {
+    name: string;
+  };
+
+  // 変数johnにName型を指定
+  let john: Name;
+
+  // ケース1
+  const objA = { name: "John" };
+  john = objA; // OK. nameプロパティが存在するため
+
+  // ケース2
+  const objB = {
+    name: "John",
+    gender: "male", // name以外のプロパティ
+  };
+
+  john = objB; // OK. name以外のプロパティが含まれていても代入可能。つまり、objBはName型の要素。
+
+  // ケース3
+  const objC = {
+    // nameプロパティが含まれない
+    fullName: "John Doe",
+    age: 25,
+  };
+
+  // john = objC; // NG.
+  // >> Property 'name' is missing in type '{ fullName: string; age: number; }' but required in type 'Name'.
+}
+
+// オブジェクト型同士のユニオン型の変数とオブジェクトの代入
+{
+  type Name = {
+    name: string;
+  };
+  
+  type Age = {
+    age: number;
+  };
+  
+  // ユニオン型を定義
+  type NameOrAge = Name | Age;
+  // { name: string} | { age: number }
+  
+  let john: NameOrAge;
+  john = { name: "John" }; // OK
+  john = { age: 25 }; // OK
+}
+
+// オブジェクト型同士のインターセクション型の変数とオブジェクトの代入
+{
+  type Name = {
+    name: string;
+  };
+  
+  type Age = {
+    age: number;
+  };
+  
+  // インターセクション型
+  type NameAndAge = Name & Age;
+  // { name: sting; age: number }
+  
+  let alice: NameAndAge;
+  alice = { name: "Alice", age: 30 }; // OK
+  // alice = { name: "Alice" }; // NG
+  // >> Type '{ name: string; }' is not assignable to type 'NameAndAge'.
+  //  >> Property 'age' is missing in type '{ name: string; }' but required in type 'Age'.
+}
+
+// サブタイプとスーパータイプの具体例1
+{
+  // 変数valは型推論によりstring型になる。
+  let val = "10";
+
+  // number|string型が求められる変数にstring型の変数を代入
+  const age: number | string = val; // OK
+}
+
+// サブタイプとスーパータイプの具体例2
+{
+  type Name = {
+    name: string;
+  };
+  
+  // Name型のサブタイプ
+  type NameAndAge = {
+    name: string;
+    age: number;
+  };
+  
+  // nameだけを出力する関数
+  function logName(person: Name) {
+    console.log(person.name);
+  }
+  
+  // nameとageを出力する関数
+  function logNameAndAge(person: NameAndAge) {
+    console.log(person.name, person.age);
+  }
+  
+  const personOnlyName: Name = { name: "John" };
+  const personNameAndAge: NameAndAge = { name: "John", age: 20 };
+  
+  // OK
+  logName(personNameAndAge); // Name型を要求する関数に、NameAndAge型を渡す
+  
+  // NG
+  // logNameAndAge(personOnlyName); // NameAndAge型を要求する関数に、Name型を渡す
+  // >> Argument of type 'Name' is not assignable to parameter of type 'NameAndAge'.
+  //  >> Property 'age' is missing in type 'Name' but required in type 'NameAndAge'.
+}
+
+// logName関数にNameAndAge型のオブジェクトを渡せるのは、NameAndAge型がName型のサブタイプだから
+// logNameAndAge関数にName型のオブジェクトを渡すことはできない
+// サブタイプとスーパータイプの関係は、部分集合と上位集合の関係に対応する
+// すなわち、サブタイプに含まれるすべての値はスーパータイプの値として代わりに使用できる
+
+// トップ型とボトム型
+// TypeScriptの型システムにおいて、すべての型を包含する抽象的な型はunknown型。unknown型をすべての型のスーパータイプとして見ることで、その振る舞いを直感的に理解できる
+// 逆にすべての型のサブタイプとなるのはnever型。空集合はすべての集合の部分集合であり、never型はこの空集合に相当する
+// never型には実際には値が存在せず、どんな値もこの型の変数に代入することはできない
+// このように、型システムでは、すべての型のを包含するunknown型をトップ型と呼び、すべての型に含まれるnever型をボトム型と呼ぶ
+
+// 構造的型付け
+// この挙動は、TypeScriptの型システムが型の名前ではなく、その構造（オブジェクトのメンバーの有無と型）に基づいて互換性を判断するため
+{
+  interface Person {
+    name: string;
+  }
+  
+  class Student {
+    name: string;
+    constructor(name: string) {
+      this.name = name;
+    }
+  }
+  
+  let person: Person;
+  person = new Student("Jane");
+}
+
+// オブジェクト型の構造的部分型付け
+{
+  interface Person {
+    name: string;
+    age: number;
+  }
+  let person: Person;
+  
+  // ケース1
+  let john = {
+    name: "John",
+    age: 30,
+    gender: "male", // Personにはないプロパティが存在する
+  };
+  
+  // OK。変数johnの各プロパティの型 <: Personの各プロパティ
+  person = john;
+  
+  // ケース2
+  let jane = {
+    name: "Jane",
+    age: "25", // string型はPersonのageの型のサブタイプではない
+  };
+  
+  // NG
+  // person = jane;
+  // >> Type '{ name: string; age: string; }' is not assignable to type 'Person'.
+  //  >> Types of property 'age' are incompatible.
+  //   >> Type 'string' is not assignable to type 'number'.
+  
+  // ケース3
+  let alice = {
+    name: "Alice",
+    // Personに存在するプロパティageが欠如している
+  };
+  
+  // NG
+  // person = alice;
+  // >> Property 'age' is missing in type '{ name: string; }' but required in type 'Person'.  
+}
+
+// 関数のパラメータがオブジェクト型の場合の構造的部分型付け
+// この場合も「johnの各プロパティ <: Person型の各プロパティ」の関係を満たすため問題なく実行できる
+{
+  interface Person {
+    name: string;
+    age: number;
+  }
+  
+  let john = { name: "John", age: 30, gender: "male" };
+  
+  function introduce(person: Person) {
+    console.log(`Hello, I'm ${person.name}`);
+  }
+  
+  introduce(john); // OK
+}
+
+// 構造的型付けとは対照的に、型の互換性を型に付与された名前に基づいて判断する名前的型付けというシステムも存在する
+// この型システムはC++やJavaなどの言語で見られ、2つの型が同じ構造を持っていても、名前が異なる場合には異なる型として扱われる
+// JavaScriptでは無名の関数式やオブジェクトリテラルが広く使われているため、名前的型付けよりも構造的型付けによる型の互換性判断がより適している
+
+// 戻り値の型と関数型の互換性
+{
+  let fn1 = () => ({ name: "John" });
+  // 関数型：() => { name: string; }
+
+  let fn2 = () => ({ name: "John", age: 30 });
+  // 関数型：() => { name: string; age: number; }
+
+  // OK
+  fn1 = fn2;
+  // fn2の戻り値の型 <: fn1の戻り値の型 であるため、fn1にfn2が代入可能。
+
+  // NG
+  // fn2 = fn1;
+  // >> Type '() => { name: string; }' is not assignable to type '() => { name: string; age: number; }'.
+  //  >> Property 'age' is missing in type '{ name: string; }' but required in type '{ name: string; age: number; }'.
+}
+
+// パラメータの型と関数型の互換性
+{
+  interface Person {
+    name: string;
+    age: number;
+  }
+  
+  // インターフェイスの拡張によって、自動的にStudentはPersonのサブタイプになる
+  interface Student extends Person {
+    club: string;
+  }
+  
+  let fn3 = (person: Person) => {
+    console.log(`That person's name is ${person.name} (${person.age}).`);
+  };
+  // fn3 は関数型: (person: Person) => void
+  
+  let fn4 = (student: Student) => {
+    console.log(
+      `That student's name is ${student.name} (${student.age}) and enjoys ${student.club}`
+    );
+  };
+  // fn4 は関数型: (student: Student) => void
+  
+  // NG. パラメータの型に注目すると、Student型 <: Person型　なので条件を満たさない。
+  // fn3 = fn4;
+  
+  // OK.
+  fn4 = fn3;
+  
+  // fn4のパラメータの型はStudent型のため、Student型のオブジェクトを渡す必要がある。
+  fn4({ name: "John", age: 30, club: "tennis" });
+  // ログ：That person's name is John (30).  
+}
+
+// パラメータの数と関数型の互換性
+{
+  interface Person {
+    name: string;
+    age: number;
+  }
+  
+  // インターフェイスの拡張によって、自動的にStudentはPersonのサブタイプになる
+  interface Student extends Person {
+    club: string;
+  }
+  
+  let fn3 = (person: Person) => {
+    console.log(`That person's name is ${person.name} (${person.age}).`);
+  };
+  
+  // 新たに定義
+  let fn5 = (person: Person, gender: string) => {
+    console.log(
+      `That person's name is ${person.name}(${person.age}, ${gender}).`
+    );
+  };
+  // fn5 は関数型: (person: Person, gender: string) => void
+  
+  // NG. fn3のパラメータの数 < fn5のパラメータの数　なので条件を満たさない。
+  // fn3 = fn5;
+  
+  // OK
+  fn5 = fn3;
+  
+  //　fn5は関数型としてパラメータを2つ持つため、引数を2つ渡す必要がある。
+  fn5({ name: "Jane", age: 25 }, "female");
+  // ログ：That person's name is Jane (25).  
+}
+
+// 関数型の互換性
+{
+  interface Person {
+    name: string;
+    age: number;
+  }
+  
+  // インターフェイスの拡張によって、自動的にStudentはPersonのサブタイプになる
+  interface Student extends Person {
+    club: string;
+  }
+  
+  let fn3 = (person: Person) => {
+    console.log(`That person's name is ${person.name} (${person.age}).`);
+  };
+  
+  // 新たに定義
+  let fn6 = (student: Student, gender: string) => {
+    console.log(
+      `That student's name is ${student.name}(${student.age},${gender}) and enjoys ${student.club}`
+    );
+  };
+  // fn6 は関数型: (student: Student, gender: string) => void
+  
+  // OK
+  fn6 = fn3;
+  // 互換性の条件1：fn6のパラメータの型 <: fn3のパラメータの型
+  // 互換性の条件2：fn3のパラメータの数 < fn6のパラメータの数
+  
+  fn6({ name: "Alice", age: 18, club: "chess" }, "female");
+  // ログ：That person's name is Alice (18).  
+}
+
+// 関数Aと関数Bにおいて、次の条件が満たされる場合、関数Bは関数Aのサブタイプとなる
+// 各パラメータにおいて、「Aのパラメータの型 <: Bのパラメータの型」
+// Bのパラメータの数 <= Aのパラメータの数
+// Bの戻り値の型 <: Aの戻り値の型
+
+// 型の拡大
+// TypeScriptは、letで宣言されたnumには、後続の処理で別の数値が再代入される可能性を想定して、リテラル型ではなく汎用的なnumber型に拡大して推論する
+{
+  let num = 5; // number型
+  let greet = "Hello"; // string型
+}
+
+// constでの変数宣言と型推論
+// constで宣言されたPIは具体的なリテラル3.14として型付けされる
+{
+  const PI = 3.14; // リテラル型（3.14）
+}
+
+// letで宣言された変数にリテラル型の変数を代入
+{
+  const PI = 3.14; // リテラル型（3.14）。constで宣言されているのでnumber型に拡大されない
+
+  let num = PI; // number型に拡大
+}
+
+// 型注釈による型の拡大の防止
+{
+  // 型注釈で型を指定
+  const PI: 3.14 = 3.14; // リテラル型（3.14）
+
+  let num = PI; // リテラル型（3.14）。型が拡大されない。
+}
+
+// 配列の型の拡大
+{
+  const fruits = ["apple", "grape", "peach"]; // string[]
+
+  const primitives = [1, "hello", true]; // (string | number | boolean)[]
+}
+
+// any型への拡大
+{
+  let x = null; // any型
+  x = 123;
+  x = "abc";
+
+  // 暗黙的にundefinedで初期化
+  let y; // any型
+  y = 456;
+  y = "xyz";
+
+  // 空の配列で初期化
+  let list = []; // any[]型
+  list.push(1);
+  list.push("Jane");
+}
+
+// any型と変数のスコープ
+{
+  function fn1() {
+    let x; // any型
+    x = 123;
+    x = "abc";
+    return x;
+  }
+  
+  let x = fn1(); // string型
+  // x = 1; // NG
+  // Type 'number' is not assignable to type 'string'.
+  
+  function fn2() {
+    let list = []; // any[]型
+    list.push(1);
+    list.push("Jane");
+    return list;
+  }
+  
+  const list = fn2(); // (string | number)[]
+  // list.push(true); // NG
+  // >> Argument of type 'boolean' is not assignable to parameter of type 'string | number'.  
+}
+
+// 代入による絞り込み
+{
+  let x = Math.random() > 0.5 ? 1 : "Hello, TypeScript";
+  // string | number 型
+
+  // NG。xの型がnumber型の可能性があるため
+  // x.toUpperCase();
+  // >> Property 'toUpperCase' does not exist on type 'string | number'.
+  //  >> Property 'toUpperCase' does not exist on type 'number'.
+
+  // 代入する値の型からxの型を絞り込む
+  x = "narrowing"; // string 型
+
+  // OK。string型に絞り込まれているため
+  x.toUpperCase();
+
+  // 代入する値の型からxの型を絞り込む
+  x = 123;
+
+  // OK。number型に絞り込まれているため
+  x.toFixed();
+}
