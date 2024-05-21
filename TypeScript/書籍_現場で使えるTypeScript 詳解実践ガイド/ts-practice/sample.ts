@@ -1428,3 +1428,346 @@ function addNumber(a:number,b:number):number {
   // OK。number型に絞り込まれているため
   x.toFixed();
 }
+
+// 等価演算子による絞り込み
+{
+  // ケース1
+  let x = Math.random() > 0.5 ? 1 : "Hello";
+  // string | number 型
+
+  if (x === "Hello") {
+    // OK。このブロック内では、xは"Hello"型として扱われる
+    x.toUpperCase();
+  }
+
+  // NG
+  // x.toUpperCase();
+
+  // ケース2
+  function fn(strOrNum: string | number, strOrBool: string | boolean) {
+    // この条件が真になるのは、どちらもstring型の場合のみ
+    if (strOrNum === strOrBool) {
+      // このブロック内では、どちらの変数もstring型として扱われる
+      strOrNum.toUpperCase();
+      strOrBool.toUpperCase();
+    } else {
+      console.log(strOrNum); // string | number 型
+      console.log(strOrBool); // string | boolean 型
+    }
+  }
+}
+
+// typeofによる絞り込み
+{
+  function printValue(value: string | number) {
+    if (typeof value === "string") {
+      // valueはstring型として扱われる。
+      console.log(value.toUpperCase());
+    } else {
+      // valueは必然的にnumber型として扱われる
+      console.log(value.toFixed(2));
+    }
+  }
+}
+
+// inによる絞り込み
+{
+  interface Rectangle {
+    width: number;
+    height: number;
+  }
+  
+  interface Circle {
+    radius: number;
+  }
+  
+  function printArea(shape: Rectangle | Circle) {
+    if ("width" in shape) {
+      // shapeはRectangle型として扱われる
+      console.log(`Area: ${shape.width * shape.height}`);
+    } else {
+      // shapeはCircle型として扱われる
+      console.log(`Radius: ${shape.radius ** 2 * 3.14}`);
+    }
+  }
+}
+
+// instanceofによる絞り込み
+{
+  class Fish {
+    swim() {
+      console.log("The fish is swimming.");
+    }
+  }
+  
+  class Bird {
+    fly() {
+      console.log("The bird is flying.");
+    }
+  }
+  
+  function move(animal: Fish | Bird) {
+    if (animal instanceof Fish) {
+      // animalはFish型として扱われる
+      animal.swim();
+    } else {
+      // animalはBird型として扱われる
+      animal.fly();
+    }
+  }
+}
+
+// タグ付きユニオン型のタグによる絞り込み
+// in演算子がプロパティの「存在」に基づいて型を絞り込むのに対し、タグ付きユニオン型は特定のプロパティの「値」に基づいて型を絞り込むため、より直接的で明確な型の識別を実現する
+{
+  interface Rectangle {
+    type: "rectangle"; // タグ(識別子)
+    width: number;
+    height: number;
+  }
+  
+  interface Circle {
+    type: "circle"; // タグ
+    radius: number;
+  }
+  
+  interface Square {
+    type: "square"; // タグ
+    width: number;
+  }
+  
+  // ユニオン型の定義
+  type Shape = Rectangle | Circle | Square;
+  
+  function printArea(shape: Shape) {
+    switch (shape.type) {
+      case "rectangle":
+        console.log(`Area: ${shape.width * shape.height}`);
+        break;
+      case "circle":
+        console.log(`Area: ${shape.radius ** 2 * 3.14}`);
+        break;
+      case "square":
+        console.log(`Area: ${shape.width ** 2}`);
+        break;
+    }
+  }
+}
+
+// satisfiesキーワード
+// 変数colorの型推論を維持したまま、Color型との一致を検証できる
+// TypeScriptの強力な型推論を最大限活用するためのにも、型注釈は必要最低限に留め、下記のようなケースではsatisfiesキーワードを使用する
+{
+  type RGB = [red: number, green: number, blue: number]; // ラベル付きTuple型
+
+  interface Color {
+    red: RGB | string;
+    green: RGB | string;
+    blue: RGB | string;
+  }
+
+  const color = {
+    red: [255, 0, 0],
+    green: "#00ff00",
+    blue: [0, 0, 255],
+  } satisfies Color; // satisfiesキーワードによる型の指定
+
+  // OK
+  const greenNormalized = color.green.toUpperCase();
+
+  // NG
+  // const typoColor = {
+  //   red: [255, 0, 0],
+  //   green: "#00ff00",
+  //   bleu: [0, 0, 255], // Error
+  // } satisfies Color;
+
+  // >> Object literal may only specify known properties, and 'bleu' does not exist in type 'Color'.
+}
+
+// 引数の型をチェックするための関数
+// isString関数の結果を用いれば、型が絞れそうだがうまくいかない
+// なぜならTypeScriptが理解しているのは、isStringの戻り値がboolean型である、ということだけでisStringで絞り込まれた型情報はスコープの外に出ると失われてしまうから
+{
+  function isString(value: unknown): boolean {
+    return typeof value === "string";
+  }
+  
+  function printValue(inputVal: number | string) {
+    if (isString(inputVal)) {
+      // NG。inputValがstring型に絞り込めていない。
+      // console.log(inputVal.toUpperCase());
+      // >> Property 'toUpperCase' does not exist on type 'string | number'.
+    } else {
+      // NG
+      // console.log(inputVal.toFixed(2));
+      // >> Property 'toFixed' does not exist on type 'string | number'.
+    }
+  }
+}
+
+// ユーザー定義型ガード
+// 関数の戻り値として「:パラメータ名 is 型名」という型述語を指定して定義する
+// この関数が真を返した場合に、そのパラメータが、型述語をで指定した型であることをTypeScriptの型チェッカーに伝える
+{
+  // 引数がstring型かをチェックするユーザー定義型ガード
+  function isString(value: unknown): value is string {
+    return typeof value === "string";
+  }
+
+  function printValue(inputVal: number | string) {
+    if (isString(inputVal)) {
+      // ユーザー定義型ガードによって、inputValはこのブロック内ではstring型として扱われる。
+      console.log(inputVal.toUpperCase());
+    } else {
+      console.log(inputVal.toFixed(2));
+    }
+  }
+}
+
+// 型アサーションの構文
+// 型アサーションは、サブタイプとスーパータイプの関係にある型の間でしか使用できない
+{
+  let input: unknown;
+
+  // 何らかの処理
+  // ...
+
+  // 変数inputの型をstring型にアサーション
+  let text: string;
+  text = input as string;
+}
+
+// DOM要素と型アサーション
+{
+  // TypeScriptはDOM APIの種類から戻り値の型をある程度推論するが、具体的なHTML要素までは絞り込めない
+  const someElementA = document.querySelector(".someClass");
+  // Element | null 型
+
+  // 型アサーションによる型の変更。開発者が具体的なHTML要素を知っている場合
+  const someElementB = document.querySelector(".someClass") as HTMLInputElement;
+  // HTMLInputElement 型
+
+  console.log("someElementB:", someElementB.value);
+}
+
+// 非nullアサーション
+// 開発者がコードの該当する部分で変数が決してnullやundifinedにならないと確信している場合に、その情報をTypeSriptに伝えるための構文
+// data!による非nullアサーションを用いることで、data変数がnullでないと断言している
+// この表明により、processedDataの型をstringとして扱える
+{
+  function fetchData(): string | null {
+    return Math.random() ? "text" : null;
+  }
+  
+  let data: string | null = fetchData();
+  
+  // 非 null アサーションを使用して、dataがnullではないことを保証する
+  const processedData: string = data!;
+}
+
+// constアサーションの構文
+// obj内の各プロパティは読み取り専用となり、またプロパティの値はリテラル型として固定される
+{
+  let obj = {
+    x: 10,
+    y: "hello",
+  } as const;
+  
+  // constアサーションで変更後の型
+  // {
+  //  readonly x: 10;
+  //  readonly y: "hello";
+  // }
+}
+
+// 配列とconstアサーション
+{
+  let arr = [1, 2, 3] as const; // readonly [1,2,3] 型
+}
+
+// keyof演算子
+// 指定されたオブジェクト型からそのプロパティキーのリテラル型を抽出し、それらを結合したユニオン型を生成する際に使用される
+{
+  interface Person {
+    name: string;
+    age: number;
+    hobbies: string[];
+  }
+  
+  type PersonKeys = keyof Person;
+  // "name" | "age" | "hobbies" 型  
+}
+
+// keyof演算子の利用例
+// keyof演算子は型レベルでの操作に使用され、変数の「型」に対して適用されるため、直接的に変数に使用できない
+{
+  interface Person {
+    name: string;
+    age: number;
+    hobbies: string[];
+  }
+  
+  // パラメータkeyの型にkeyof演算子を使用
+  function getProperty(obj: Person, key: keyof Person) {
+    return obj[key];
+  }
+  
+  const person: Person = {
+    name: "John",
+    age: 30,
+    hobbies: ["tennis", "cooking"],
+  };
+  
+  console.log(getProperty(person, "name")); // "John"  
+}
+
+// typeof演算子による型の取得
+// JavaScriptのtypeof演算子は対象の値のデータ型を「文字列」で返す演算子だが、TypeScriptのtypeof演算子は、対象の変数や式の「型情報」を返す
+{
+  const person = {
+    name: "John",
+    age: 30,
+    hobbies: ["tennis", "cooking"],
+  };
+  
+  // 既存の変数から型を取得して、パラメータの型として指定
+  function greet(p: typeof person) {
+    console.log(`My name is ${p.name}!`);
+  }
+  
+  // パラメータ p の型
+  // {
+  //   name: string;
+  //   age: number;
+  //   hobbies: string[];
+  // }
+  
+  // NG
+  // greet({ name: "Alice", age: 22 });
+  // >> Argument of type '{ name: string; age: number; }' is not assignable to parameter of type '{ name: string; age: number; hobbies: string[]; }'.
+  //  >> Property 'hobbies' is missing in type '{ name: string; age: number; }' but required in type '{ name: string; age: number; hobbies: string[]; }'.
+}
+
+// keyofとtypeof演算子の組み合わせ
+{
+  const employee = {
+    id: "e001",
+    name: "Alice",
+    department: "Engineering",
+  };
+  
+  // keyofとtypeofを組み合わせると、明示的な型情報がなくても変数から直接キー情報を抽出できる
+  function getEmployeeDetail(key: keyof typeof employee) {
+    return employee[key];
+  }
+  
+  // keyof typeof employee の型
+  // '"name" | "id" | "department"
+  
+  console.log(getEmployeeDetail("name")); //"Alice"
+  
+  // NG
+  // console.log(getEmployeeDetail("age"));
+  // >> Argument of type '"age"' is not assignable to parameter of type '"id" | "name" | "department"'.
+}
