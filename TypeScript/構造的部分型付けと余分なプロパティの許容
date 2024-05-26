@@ -1,0 +1,44 @@
+John に person を代入できる理由は、型チェックにおけるオブジェクトの部分型付けに関係しています。
+
+以下のコードを例に説明します：
+
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+let person: Person;
+
+// ケース1
+let john = {
+  name: "John",
+  age: 30,
+  gender: "male"
+};
+
+person = john;
+```
+
+TypeScriptでは、`john` オブジェクトのプロパティ `name` と `age` が `Person` インターフェースに定義されている型と一致しているため、`john` を `person` に代入することができます。具体的には、次の理由があります：
+
+1. **構造的部分型付け**: TypeScriptは構造的部分型付け（structural subtyping）を使用しています。これは、オブジェクトの構造が型に合っていれば、そのオブジェクトはその型の一部と見なされるということです。`john` は `name` と `age` のプロパティを持っているため、`Person` 型に合致しています。
+2. **余分なプロパティの許容**: `john` は `Person` 型のプロパティ以外にも `gender` プロパティを持っていますが、TypeScriptは余分なプロパティを持つオブジェクトを許容します。この場合、重要なのは `Person` 型に定義されたプロパティ (`name` と `age`) が正しい型で存在しているかどうかです。
+
+したがって、`person = john;` は正しいコードとして認識されます。
+
+一方で、次のケースは代入できません：
+
+```typescript
+let jane = {
+  name: "Jane",
+  age: "25" // ageはstring型
+};
+
+// エラー: string型はnumber型のサブタイプではないため
+person = jane;
+```
+
+`jane` の `age` プロパティが `string` 型であり、これは `Person` インターフェースの `age` プロパティ（`number` 型）と一致しないため、代入できません。
+
+このように、型チェックにおいて重要なのはプロパティの存在とその型の一致であり、余分なプロパティがあっても無視されます。
