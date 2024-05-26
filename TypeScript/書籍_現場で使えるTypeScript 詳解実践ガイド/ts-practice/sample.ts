@@ -1771,3 +1771,295 @@ function addNumber(a:number,b:number):number {
   // console.log(getEmployeeDetail("age"));
   // >> Argument of type '"age"' is not assignable to parameter of type '"id" | "name" | "department"'.
 }
+
+// ジェネリクスによる実装
+{
+  function getLastItem<T>(array: T[]): T {
+    return array[array.length - 1];
+  }
+  
+  const numbers = [1, 2, 3, 4, 5];
+  let lastNumber = getLastItem(numbers); // 5 number型
+}
+
+// 型パラメータT
+{
+  //　Tは型パラメータ
+  function getLastItem<T>(array: T[]): T {
+    return array[array.length - 1];
+  }
+}
+
+// ジェネリック関数の呼び出し
+{
+  function getLastItem<T>(array: T[]): T {
+    return array[array.length - 1];
+  }
+  
+  const numbers = [1, 2, 3, 4, 5]; // number[] 型
+  // ジェネリック関数の呼び出し。
+  let lastNumber = getLastItem(numbers);
+}
+
+// 2つの型パラメータを持つジェネリック関数
+{
+  function createPair<T, U>(first: T, second: U): [T, U] {
+    return [first, second];
+  }
+  
+  const numStringPair = createPair(123, "hello"); // [number, string]型
+  const numPair = createPair(123, 456); // [number, number]型
+}
+
+// 型引数の型推論
+{
+  function getLastItem<T>(array: T[]): T {
+    return array[array.length - 1];
+  }
+  
+  const numbers = [1, 2, 3, 4, 5]; // number[] 型
+  
+  // ジェネリック関数を呼び出すとき、明示的には型に関する情報を指定していない。
+  let lastNumber = getLastItem(numbers); // 正しく number型と推論される。
+}
+
+// 型引数の明示的な指定
+// 明示的に型引数を指定する方法を以下に記載したが、型推論は非常に強力なため、変数に対する型注釈と型推論の使い分けと同じように、基本的にはTypeScriptに型推論させる
+{
+  function getLastItem<T>(array: T[]): T {
+    return array[array.length - 1];
+  }
+  
+  const numbers = [1, 2, 3, 4, 5]; // number[] 型
+  
+  // 型引数を明示的にnumber型に指定
+  let lastNumber = getLastItem<number>(numbers);
+  
+  // NG.
+  // let lastString = getLastItem<string>(numbers);
+  // >> Argument of type 'number[]' is not assignable to parameter of type 'string[]'.
+  //  >> Type 'number' is not assignable to type 'string'.
+}
+
+// 型パラメータにデフォルト型を指定
+// デフォルト型は、関数呼び出し時に型引数が明示的に提供されない場合に使用される
+// 型推論によって関数の引数から推論された型が、デフォルト型を異なる場合、TypeScriptは推論された型を優先する
+{
+  // デフォルト型の設定
+  function createPair<T = number, U = string>(first: T, second: U): [T, U] {
+    return [first, second];
+  }
+}
+
+// ジェネリックインターフェイスの宣言
+{
+  interface Pair<T> {
+    first: T;
+    second: T;
+  }
+}
+
+// ジェネリックインターフェイスの利用
+{
+  interface Pair<T> {
+    first: T;
+    second: T;
+  }
+  
+  // 型引数にstring型を指定
+  let stringPair: Pair<string> = {
+    first: "Ryu",
+    second: "Ken",
+  };
+  
+  // 型引数にnumber型を指定
+  let numberPair: Pair<number> = {
+    first: 1,
+    second: 2,
+  };
+  
+  // NG. 型引数を渡していないのでエラー
+  // let dataPair: Pair;
+  // Generic type 'Pair<T>' requires 1 type argument(s).
+}
+
+// ジェネリッククラスの宣言
+{
+  class DataStorage<T> {
+    private items: T[] = [];
+  
+    add(item: T): void {
+      this.items.push(item);
+    }
+  
+    getItem(index: number): T {
+      return this.items[index];
+    }
+  
+    getAllItems(): T[] {
+      return [...this.items];
+    }
+  }
+}
+
+// ジェネリッククラスのインスタンス化
+// これらの例では、型引数を推論するヒントがないため、明示的に型引数を指定する必要がある
+{
+  class DataStorage<T> {
+    private items: T[] = [];
+  
+    add(item: T): void {
+      this.items.push(item);
+    }
+  
+    getItem(index: number): T {
+      return this.items[index];
+    }
+  
+    getAllItems(): T[] {
+      return [...this.items];
+    }
+  }
+  
+  let numberStorage = new DataStorage<number>();
+  numberStorage.add(10);
+  console.log(numberStorage.getItem(0)); // 10
+  
+  // 型引数にstring型を指定してインスタンス化
+  let stringStorage = new DataStorage<string>();
+  stringStorage.add("Hello");
+  console.log(stringStorage.getItem(0)); // "Hello"
+}
+
+// ジェネリッククラスの型推論
+// コンストラクタに初期値を渡すことで、TypeScriptはその初期値からインスタンスの型パラメータを推論でき、開発者が型引数を明示的に提供する手間を省ける
+{
+  class DataStorage<T = number> {
+    private items: T[] = [];
+  
+    // コンストラクタを追加
+    constructor(initialItems?: T[]) {
+      if (initialItems) {
+        this.items.push(...initialItems);
+      }
+    }
+    // 以降省略
+  }
+  
+  // 初期値を渡してインスタンス化
+  let stringStorage = new DataStorage(["Ryu", "Ken"]);  
+}
+
+// ジェネリッククラスの継承1
+{
+  class DataStorage<T> {
+    private items: T[] = [];
+  
+    add(item: T): void {
+      this.items.push(item);
+    }
+  
+    getItem(index: number): T {
+      return this.items[index];
+    }
+  
+    getAllItems(): T[] {
+      return [...this.items];
+    }
+  }
+  
+  // DataStorage<string>クラスを継承
+  class DataStorageLogger extends DataStorage<string> {
+    printAllItems(): void {
+      const allItems = this.getAllItems();
+      console.log("Stored items:", allItems);
+    }
+  }
+  
+  let stringStorage = new DataStorageLogger();
+  stringStorage.add("Type");
+  stringStorage.add("Script");
+  stringStorage.printAllItems(); // ログ出力： Stored items: [ 'Type', 'Script' ]  
+}
+
+// ジェネリッククラスの継承2
+// DataStorageLogger<number>としてインスタンス化すると、このクラスとスーパークラスの両方のTはnumber型として扱われる
+{
+  class DataStorage<T> {
+    private items: T[] = [];
+  
+    add(item: T): void {
+      this.items.push(item);
+    }
+  
+    getItem(index: number): T {
+      return this.items[index];
+    }
+  
+    getAllItems(): T[] {
+      return [...this.items];
+    }
+  }
+  
+  class DataStorageLogger<T> extends DataStorage<T> {
+    printAllItems(): void {
+      const allItems = this.getAllItems();
+      console.log("Stored items:", allItems);
+    }
+  
+    // 0番目に保存したデータを取得するメソッドを追加
+    getFirstItem(): T {
+      return this.getItem(0);
+    }
+  }
+  
+  // このnumber型がスーパークラスの型引数にも渡る
+  let numberStorage = new DataStorageLogger<number>();
+  numberStorage.add(85);
+  numberStorage.add(90);
+  console.log(numberStorage.getFirstItem()); // 85
+  
+  // // NG. スーパークラスのaddメソッドのパラメータの型が、number型になっているためエラー
+  // numberStorage.add("12");
+  // >> Argument of type 'string' is not assignable to parameter of type 'number'.
+}
+
+// ジェネリックインターフェイスの実装
+{
+  interface IStorage<T> {
+    add(item: T): void;
+    getItem(index: number): T;
+    getAllItems(): T[];
+  }
+  
+  // NG. IStorageを正しく実装できていない。
+  // class DataStorage<T> implements IStorage<T> {
+  //   private items: T[] = [];
+  
+  //   add(item: T): void {
+  //     this.items.push(item);
+  //   }
+  
+  //   getItem(index: number): T {
+  //     return this.items[index];
+  //   }
+  
+  //   // getAllItemsメソッドが欠如しているためエラー
+  // }
+  // >> Class 'DataStorage<T>' incorrectly implements interface 'IStorage<T>'.
+  //  >> Property 'getAllItems' is missing in type 'DataStorage<T>' but required in type 'IStorage<T>'.  
+}
+
+// ジェネリック型エイリアス
+{
+  type Pair<T, U> = {
+    first: T;
+    second: U;
+  };
+  
+  // ジェネリック型エイリアスによる型注釈
+  const stringAndNumber: Pair<string, number> = {
+    first: "hello",
+    second: 123,
+  };  
+}
